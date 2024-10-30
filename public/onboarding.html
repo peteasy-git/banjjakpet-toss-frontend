@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://static.toss.im/tds/43.9.4/css/tds.min.css" />
+    <link rel="stylesheet" type="text/css" href="https://static.toss.im/tps/main.css" />
+    <link rel="stylesheet" type="text/css" href="https://static.toss.im/tps/others.css" />
+    <link rel="stylesheet" type="text/css" href="./css/global.css" />
+    <script src="https://cdn.tossplace.com/toss-front-sdk/v0/index.js"></script>
+    <script src="./js/sdk.js"></script>
+    <title>Order Example - Toss Front SDK</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script>
+      const banjjakpetUrl = 'https://toss.banjjakpet.com';
+      // const banjjakpetUrl = 'http://localhost:3000';
+
+      sdk.template.renderOnboardingPage({
+        title: '반짝 로그인',
+        inputs: {
+          shopId: { label: '매장 고유 ID', type: 'number', placeholder: '매장 고유 ID를 입력해주세요.' },
+          phoneNumber: { label: '전화번호', type: 'string', placeholder: '전화번호를 입력해주세요.' },
+        },
+        onSubmit: async (values) => {
+          try {
+            const { serialNumber } = await sdk.app.getSerialNumber();
+
+            const response = await fetch(`${banjjakpetUrl}/users`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ...values, serialNumber }),
+            });
+
+            if (response.status !== 201) {
+              throw new Error(response.status);
+            }
+
+            const { accessToken } = await response.json();
+
+            await sdk.storage.set({ key: 'token', value: accessToken });
+
+            location.href = './home';
+          } catch (e) {
+            if (Number(e.message) === 404) {
+              throw new Error('매장 고유 ID를 다시 확인해주세요.');
+            }
+
+            throw new Error('로그인에 실패했습니다.');
+          }
+        },
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://static.toss.im/tds/43.9.4/css/tds.min.css" />
+    <link rel="stylesheet" type="text/css" href="https://static.toss.im/tps/main.css" />
+    <link rel="stylesheet" type="text/css" href="https://static.toss.im/tps/others.css" />
+    <link rel="stylesheet" type="text/css" href="./css/global.css" />
+    <script src="https://cdn.tossplace.com/toss-front-sdk/v0/index.js"></script>
+    <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+    <script src="./js/sdk.js"></script>
+    <title>Order Example - Toss Front SDK</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script>
+      const banjjakpetUrl = 'https://toss.banjjakpet.com';
+
+      window.addEventListener('DOMContentLoaded', async () => {
+        const accessToken = localStorage.getItem('token');
+
+        if (!accessToken) {
+          location.href = './onboarding';
+        }
+
+        const socket = io(banjjakpetUrl, { auth: { token: accessToken, debug: true } });
+
+        socket.on('payment', (data) => {
+          renderOrderPage(data);
+        });
+      });
+
+      const renderOrderPage = async (order) => {
+        sdk.template.renderOrderPage({
+          order,
+          onClick: async () => {
+            const price = order.card;
+            const tax = order.isTax ? Math.floor(price / 11) : 0;
+            const supplyValue = price - tax;
+
+            const paymentKey = order.paymentKey;
+
+            const result = await sdk.payment.requestPayment({ paymentKey, tax, supplyValue, tip: 0, localeCode: 'ko' });
+
+            if (result.type === 'CANCELED' || result.type === 'TIMEOUT') {
+              return;
+            }
+
+            const accessToken = localStorage.getItem('token');
+
+            switch (result.response.paymentMethod) {
+              case 'CARD':
+                await fetch(`${banjjakpetUrl}/payments/${paymentKey}`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+                  body: JSON.stringify({ result }),
+                });
+                break;
+              case 'BARCODE':
+                console.log(result.response.barcode);
+                break;
+              case 'CASH':
+                console.log(result.response.cash);
+                break;
+            }
+
+            onIdle();
+          },
+          onBack: () => {
+            onIdle();
+          },
+        });
+      };
+
+      const onIdle = () => {
+        sdk.template.renderIdlePage();
+      };
+
+      onIdle();
+    </script>
+  </body>
+</html>
