@@ -18,10 +18,10 @@
       const banjjakpetUrl = 'https://toss.banjjakpet.com';
 
       window.addEventListener('DOMContentLoaded', async () => {
-        const accessToken = localStorage.getItem('token');
+        const accessToken = await sdk.storage.get({ key: 'token' });
 
         if (!accessToken) {
-          location.href = './onboarding';
+          location.href = './onboarding.html';
         }
 
         const socket = io(banjjakpetUrl, { auth: { token: accessToken, debug: true } });
@@ -35,22 +35,30 @@
         sdk.template.renderOrderPage({
           order,
           onClick: async () => {
+            alert('onClick');
             const price = order.card;
+            alert(`price: ${price}`);
             const tax = order.isTax ? Math.floor(price / 11) : 0;
+            alert(`tax: ${tax}`);
             const supplyValue = price - tax;
+            alert(`supplyValue: ${supplyValue}`);
 
             const paymentKey = order.paymentKey;
+            alert(`paymentKey: ${paymentKey}`);
 
             const result = await sdk.payment.requestPayment({ paymentKey, tax, supplyValue, tip: 0, localeCode: 'ko' });
 
             if (result.type === 'CANCELED' || result.type === 'TIMEOUT') {
+              alert(`result.type: ${result.type}`);  
               return;
             }
 
-            const accessToken = localStorage.getItem('token');
+            const accessToken = await sdk.storage.get({ key: 'token' });
+            alert(`accessToken: ${accessToken}`);
 
             switch (result.response.paymentMethod) {
               case 'CARD':
+                alert('CARD');
                 await fetch(`${banjjakpetUrl}/payments/${paymentKey}`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
@@ -58,9 +66,11 @@
                 });
                 break;
               case 'BARCODE':
+                alert('BARCODE');
                 console.log(result.response.barcode);
                 break;
               case 'CASH':
+                alert('CASH');
                 console.log(result.response.cash);
                 break;
             }

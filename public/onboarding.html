@@ -27,10 +27,16 @@
           try {
             const { serialNumber } = await sdk.app.getSerialNumber();
 
+            const payload = JSON.stringify({ 
+              shopId: parseInt(values.shopId),
+              phoneNumber: values.phoneNumber,  
+              serialNumber,
+            })
+
             const response = await fetch(`${banjjakpetUrl}/users`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ ...values, serialNumber }),
+              body:  payload,
             });
 
             if (response.status !== 201) {
@@ -41,13 +47,13 @@
 
             await sdk.storage.set({ key: 'token', value: accessToken });
 
-            location.href = './home';
+            location.href = './home.html';
           } catch (e) {
             if (Number(e.message) === 404) {
               throw new Error('매장 고유 ID를 다시 확인해주세요.');
-            }
-
-            throw new Error('로그인에 실패했습니다.');
+            } 
+            
+            throw new Error('로그인에 실패하였습니다.');
           }
         },
       });
